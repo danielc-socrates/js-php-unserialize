@@ -192,30 +192,24 @@ function unserialize (data) {
  * @return unserialized data
  * @throws
  */
-function unserializeSession (input) {
-  return input.split(/\|/).reduce(function (output, part, index, parts) {
-    // First part = $key
-    if (index === 0) {
-      output._currKey = part;
-    }
-    // Last part = $someSerializedStuff
-    else if (index === parts.length - 1) {
-      output[output._currKey] = unserialize(part);
-      delete output._currKey;
-    }
-    // Other output = $someSerializedStuff$key
-    else {
-      var repper = part.replace(/(\n|\r)/g," ");
-	var match = repper.match(/^((?:.*?[;\}])+)([^;\}]+?)$/);
-      if (match) {
-        output[output._currKey] = unserialize(match[1]);
-        output._currKey = match[2];
-      } else {
-        throw new Error('Parse error on part "' + part + '"');
+
+function unserializeSession(data) {
+  var pos = 0;
+  var ret = { };
+  do {
+      var key = '';
+      var c = '|';
+      while(data.length > pos && (c = data.charAt(pos)) != '|') {
+          key += c; pos++;
       }
-    }
-    return output;
-  }, {});
+      if (key == '' || key == "\r" || key == "\n") break; // eof
+      pos++; // skip '|'
+      var r = _unserialize(data, pos);
+      if (r[1] == 0) return null; // parser stuck
+      pos += r[1];
+      ret[key] = r[2];
+  } while (pos < data.length);
+  return ret;
 }
 
 // /Wrapper
